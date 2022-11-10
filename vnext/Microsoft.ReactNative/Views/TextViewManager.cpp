@@ -72,7 +72,7 @@ class TextShadowNode final : public ShadowNodeBase {
       auto run = childNode.GetView().try_as<winrt::Run>();
       if (run != nullptr) {
         m_firstChildNode = &child;
-        auto textBlock = this->GetView().try_as<xaml::Controls::RichTextBlock>();
+        auto textBlock = this->GetView().as<xaml::Controls::RichTextBlock>();
         auto paragraph = xaml::Documents::Paragraph{};
         paragraph.Inlines().Append(run);
         textBlock.Blocks().Append(paragraph);
@@ -80,7 +80,7 @@ class TextShadowNode final : public ShadowNodeBase {
       }
     } else if (m_firstChildNode != nullptr) {
       assert(m_children.size() == 2);
-      auto textBlock = this->GetView().try_as<xaml::Controls::RichTextBlock>();
+      auto textBlock = this->GetView().as<xaml::Controls::RichTextBlock>();
       textBlock.Blocks().Clear();
       Super::AddView(*m_firstChildNode, 0);
       m_firstChildNode = nullptr;
@@ -95,7 +95,7 @@ class TextShadowNode final : public ShadowNodeBase {
 
   void removeAllChildren() override {
     if (m_firstChildNode) {
-      auto textBlock = this->GetView().try_as<xaml::Controls::RichTextBlock>();
+      auto textBlock = this->GetView().as<xaml::Controls::RichTextBlock>();
       textBlock.Blocks().Clear();
       m_firstChildNode = nullptr;
     } else {
@@ -107,7 +107,7 @@ class TextShadowNode final : public ShadowNodeBase {
   void RemoveChildAt(int64_t indexToRemove) override {
     if (m_firstChildNode) {
       assert(indexToRemove == 0);
-      auto textBlock = this->GetView().try_as<xaml::Controls::RichTextBlock>();
+      auto textBlock = this->GetView().as<xaml::Controls::RichTextBlock>();
       textBlock.Blocks().Clear();
       m_firstChildNode = nullptr;
     } else {
@@ -117,7 +117,7 @@ class TextShadowNode final : public ShadowNodeBase {
   }
 
   void RecalculateTextHighlighters() {
-    const auto textBlock = this->GetView().as<xaml::Controls::TextBlock>();
+    const auto textBlock = this->GetView().as<xaml::Controls::RichTextBlock>();
     textBlock.TextHighlighters().Clear();
 
     // Since TextShadowNode is not public, we lift some of the recursive
@@ -140,7 +140,7 @@ class TextShadowNode final : public ShadowNodeBase {
 
     if (m_backgroundColor) {
       winrt::TextHighlighter highlighter{};
-      highlighter.Ranges().Append({0, static_cast<int32_t>(textBlock.Text().size())});
+      highlighter.Ranges().Append({0, static_cast<int32_t>(textBlock.Blocks().size())});
       highlighter.Background(SolidBrushFromColor(m_backgroundColor.value()));
       if (m_foregroundColor) {
         highlighter.Foreground(SolidBrushFromColor(m_foregroundColor.value()));
@@ -155,9 +155,9 @@ class TextShadowNode final : public ShadowNodeBase {
         m_touchEventHandler = std::make_unique<TouchEventHandler>(GetViewManager()->GetReactContext());
       }
 
-      m_selectionChangedRevoker = xamlView.as<xaml::Controls::TextBlock>().SelectionChanged(
+      m_selectionChangedRevoker = xamlView.as<xaml::Controls::RichTextBlock>().SelectionChanged(
           winrt::auto_revoke, [selectionChanged = this->selectionChanged](const auto &sender, auto &&) {
-            const auto textBlock = sender.as<xaml::Controls::TextBlock>();
+            const auto textBlock = sender.as<xaml::Controls::RichTextBlock>();
             *selectionChanged =
                 *selectionChanged || textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
           });
@@ -197,7 +197,7 @@ const wchar_t *TextViewManager::GetName() const {
 }
 
 XamlView TextViewManager::CreateViewCore(int64_t /*tag*/, const winrt::Microsoft::ReactNative::JSValueObject &) {
-  auto textBlock = xaml::Controls::TextBlock();
+  auto textBlock = xaml::Controls::RichTextBlock();
   textBlock.TextWrapping(xaml::TextWrapping::Wrap); // Default behavior in React Native
   return textBlock;
 }
@@ -217,7 +217,7 @@ bool TextViewManager::UpdateProperty(
     ShadowNodeBase *nodeToUpdate,
     const std::string &propertyName,
     const winrt::Microsoft::ReactNative::JSValue &propertyValue) {
-  auto textBlock = nodeToUpdate->GetView().as<xaml::Controls::TextBlock>();
+  auto textBlock = nodeToUpdate->GetView().as<xaml::Controls::RichTextBlock>();
   if (textBlock == nullptr)
     return true;
 
@@ -238,9 +238,9 @@ bool TextViewManager::UpdateProperty(
   } else if (TryUpdateTextDecorationLine(textBlock, propertyName, propertyValue)) {
     // Temporary workaround for bug in XAML which fails to flush old TextDecorationLine render
     // Link to Bug: https://github.com/microsoft/microsoft-ui-xaml/issues/1093#issuecomment-514282402
-    winrt::hstring text(textBlock.Text().c_str());
-    textBlock.Text(L"");
-    textBlock.Text(text);
+    //winrt::hstring text(textBlock.Text().c_str());
+    //textBlock.Text(L"");
+    //textBlock.Text(text);
   } else if (TryUpdateCharacterSpacing(textBlock, propertyName, propertyValue)) {
   } else if (propertyName == "numberOfLines") {
     if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Double ||
@@ -256,7 +256,7 @@ bool TextViewManager::UpdateProperty(
       textBlock.MaxLines(numberLines);
     } else if (propertyValue.IsNull()) {
       textBlock.TextWrapping(xaml::TextWrapping::Wrap); // set wrapping back to default
-      textBlock.ClearValue(xaml::Controls::TextBlock::MaxLinesProperty());
+      textBlock.Blocks().Clear();
     }
   } else if (propertyName == "lineHeight") {
     if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Double ||
@@ -264,8 +264,8 @@ bool TextViewManager::UpdateProperty(
       textBlock.LineHeight(propertyValue.AsInt32());
       textBlock.LineStackingStrategy(xaml::LineStackingStrategy::BlockLineHeight);
     } else if (propertyValue.IsNull()) {
-      textBlock.ClearValue(xaml::Controls::TextBlock::LineHeightProperty());
-      textBlock.ClearValue(xaml::Controls::TextBlock::LineStackingStrategyProperty());
+      textBlock.ClearValue(xaml::Controls::RichTextBlock::LineHeightProperty());
+      textBlock.ClearValue(xaml::Controls::RichTextBlock::LineStackingStrategyProperty());
     }
   } else if (propertyName == "selectable") {
     const auto node = static_cast<TextShadowNode *>(nodeToUpdate);
@@ -277,7 +277,7 @@ bool TextViewManager::UpdateProperty(
         EnsureUniqueTextFlyoutForXamlIsland(textBlock);
       }
     } else if (propertyValue.IsNull()) {
-      textBlock.ClearValue(xaml::Controls::TextBlock::IsTextSelectionEnabledProperty());
+      textBlock.ClearValue(xaml::Controls::RichTextBlock::IsTextSelectionEnabledProperty());
       node->ToggleTouchEvents(textBlock, false);
       ClearUniqueTextFlyoutForXamlIsland(textBlock);
     }
@@ -285,13 +285,13 @@ bool TextViewManager::UpdateProperty(
     if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean) {
       textBlock.IsTextScaleFactorEnabled(propertyValue.AsBoolean());
     } else {
-      textBlock.ClearValue(xaml::Controls::TextBlock::IsTextScaleFactorEnabledProperty());
+      textBlock.ClearValue(xaml::Controls::RichTextBlock::IsTextScaleFactorEnabledProperty());
     }
   } else if (propertyName == "selectionColor") {
     if (IsValidColorValue(propertyValue)) {
       textBlock.SelectionHighlightColor(SolidColorBrushFrom(propertyValue));
     } else
-      textBlock.ClearValue(xaml::Controls::TextBlock::SelectionHighlightColorProperty());
+      textBlock.ClearValue(xaml::Controls::RichTextBlock::SelectionHighlightColorProperty());
   } else if (propertyName == "backgroundColor") {
     const auto node = static_cast<TextShadowNode *>(nodeToUpdate);
     if (IsValidOptionalColorValue(propertyValue)) {
@@ -323,13 +323,15 @@ bool TextViewManager::UpdateProperty(
 }
 
 void TextViewManager::AddView(const XamlView &parent, const XamlView &child, int64_t index) {
-  auto textBlock(parent.as<xaml::Controls::TextBlock>());
+  auto textBlock(parent.as<xaml::Controls::RichTextBlock>());
 
-  if (auto childInline = child.try_as<winrt::Inline>()) {
-    textBlock.Inlines().InsertAt(static_cast<uint32_t>(index), childInline);
+  if (auto childInline = child.try_as<winrt::Paragraph>()) {
+    textBlock.Blocks().InsertAt(static_cast<uint32_t>(index), childInline);
   } else {
+    auto paragraph = xaml::Documents::Paragraph{};
+    paragraph.Inlines().Append(run);
     // #6315 Text can embed non-text elements. Fail gracefully instead of crashing if that happens
-    textBlock.Inlines().InsertAt(static_cast<uint32_t>(index), winrt::Run());
+    textBlock.Blocks().InsertAt(static_cast<uint32_t>(index), paragraph);
     GetReactContext().CallJSFunction(
         "RCTLog",
         "logToConsole",
@@ -339,13 +341,13 @@ void TextViewManager::AddView(const XamlView &parent, const XamlView &child, int
 }
 
 void TextViewManager::RemoveAllChildren(const XamlView &parent) {
-  auto textBlock(parent.as<xaml::Controls::TextBlock>());
-  textBlock.Inlines().Clear();
+  auto textBlock(parent.as<xaml::Controls::RichTextBlock>());
+  textBlock.Blocks().Clear();
 }
 
 void TextViewManager::RemoveChildAt(const XamlView &parent, int64_t index) {
-  auto textBlock(parent.as<xaml::Controls::TextBlock>());
-  return textBlock.Inlines().RemoveAt(static_cast<uint32_t>(index));
+  auto textBlock(parent.as<xaml::Controls::RichTextBlock>());
+  return textBlock.Blocks().RemoveAt(static_cast<uint32_t>(index));
 }
 
 YGMeasureFunc TextViewManager::GetYogaCustomMeasureFunc() const {
@@ -356,7 +358,7 @@ void TextViewManager::OnPointerEvent(
     ShadowNodeBase *node,
     winrt::Microsoft::ReactNative::ReactPointerEventArgs const &args) {
   const auto textNode = static_cast<TextShadowNode *>(node);
-  const auto textBlock = node->GetView().as<xaml::Controls::TextBlock>();
+  const auto textBlock = node->GetView().as<xaml::Controls::RichTextBlock>();
   if (textNode->m_hasDescendantPressable && args.Target() == node->GetView()) {
     // Set the target to null temporarily
     args.Target(nullptr);
