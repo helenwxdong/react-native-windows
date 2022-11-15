@@ -140,7 +140,7 @@ class TextShadowNode final : public ShadowNodeBase {
 
     if (m_backgroundColor) {
       winrt::TextHighlighter highlighter{};
-      highlighter.Ranges().Append({0, static_cast<int32_t>(textBlock.Blocks().size())});
+      highlighter.Ranges().Append({0, static_cast<int32_t>(textBlock.Blocks().Size)});
       highlighter.Background(SolidBrushFromColor(m_backgroundColor.value()));
       if (m_foregroundColor) {
         highlighter.Foreground(SolidBrushFromColor(m_foregroundColor.value()));
@@ -329,7 +329,6 @@ void TextViewManager::AddView(const XamlView &parent, const XamlView &child, int
     textBlock.Blocks().InsertAt(static_cast<uint32_t>(index), childInline);
   } else {
     auto paragraph = xaml::Documents::Paragraph{};
-    paragraph.Inlines().Append(run);
     // #6315 Text can embed non-text elements. Fail gracefully instead of crashing if that happens
     textBlock.Blocks().InsertAt(static_cast<uint32_t>(index), paragraph);
     GetReactContext().CallJSFunction(
