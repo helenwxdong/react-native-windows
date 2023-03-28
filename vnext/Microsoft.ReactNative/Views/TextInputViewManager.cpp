@@ -447,6 +447,7 @@ bool TextInputShadowNode::IsTextBox() {
 }
 
 // hacking solution to hide the caret
+// Helen's Random Comment
 void TextInputShadowNode::HideCaretIfNeeded() {
   if (m_hideCaret) {
     auto control = GetView().as<xaml::Controls::Control>();
