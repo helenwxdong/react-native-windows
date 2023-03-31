@@ -61,6 +61,7 @@ struct json_type_traits<Microsoft::ReactNative::Selection> {
   }
 };
 
+// helens random comment
 static const std::unordered_map<std::string, xaml::Input::InputScopeNameValue> textBoxKeyboardTypeMap = {
     {"default", xaml::Input::InputScopeNameValue::Default},
     {"number-pad", xaml::Input::InputScopeNameValue::TelephoneNumber},
