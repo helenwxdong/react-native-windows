@@ -1,0 +1,7 @@
+{
+  "type": "prerelease",
+  "comment": "testing",
+  "packageName": "react-native-windows",
+  "email": "helenistic@meta.com",
+  "dependentChangeType": "patch"
+}
