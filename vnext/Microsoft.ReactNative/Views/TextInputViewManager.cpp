@@ -42,6 +42,7 @@ struct Selection {
 } // namespace Microsoft::ReactNative
 
 // Such code is better to move to a seperate parser layer
+// helens comment
 template <>
 struct json_type_traits<Microsoft::ReactNative::Selection> {
   static Microsoft::ReactNative::Selection parseJson(const winrt::Microsoft::ReactNative::JSValue &json) {
